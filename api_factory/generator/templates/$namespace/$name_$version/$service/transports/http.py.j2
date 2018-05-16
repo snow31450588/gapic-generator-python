@@ -38,7 +38,12 @@ class {{ service.name }}HttpTransport({{ service.name }}Transport):
         super().__init__(credentials=credentials)
         self._session = AuthorizedSession(self._credentials)
 
-    {% for method in service.methods.values() -%}
+    {# Iterate over the methods which are supported in HTTP.
+        As of now, this means methods with no streaming, at all, although
+        in theory everything other than bidi streaming is possible.
+    -#}
+    {% for method in service.methods.values()
+        if not method.client_streaming and not method.server_streaming -%}
     def {{ method.name|snake_case }}(self,
             request: {{ method.input.pb2_module }}.{{ method.input.name }}, *,
             metadata: Sequence[Tuple[str, str]] = (),
@@ -75,4 +80,28 @@ class {{ service.name }}HttpTransport({{ service.name }}Transport):
             response.content,
         )
     {% endfor %}
-{% endblock %}
+    {# Iterate over methods unsupported in HTTP.
+        As of now, this is anything with any kind of streaming at all.
+    -#}
+    {% for method in service.methods.values()
+        if method.client_streaming or method.server_streaming -%}
+    def {{ method.name|snake_case }}(self,
+            request: {{ method.input.pb2_module }}.{{ method.input.name }}, *,
+            ) -> None:
+        """Raise an exception; this method is unsupported in HTTP.
+
+        Args:
+            request (~.{{ method.input.pb2_module }}.{{ method.input.name }}:
+                The request object. {{ method.input.meta.doc|wrap(width=72,
+                initial_width=36, subsequent_indent=' ' * 16) }}
+
+        Raises:
+            NotImplementedError: This method is not implemented in the
+                HTTP transport.
+        """
+        raise NotImplementedError(
+            'This method is not implemented in the HTTP transport. '
+            'Install gRPC (`pip install grpcio`) and use the gRPC transport.'
+        )
+    {% endfor %}
+{%- endblock %}

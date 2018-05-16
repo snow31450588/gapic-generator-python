@@ -106,6 +106,18 @@ class Method:
         """Return the overloads defined for this method."""
         return self.method_pb.options.Extensions[overload_pb2.overloads]
 
+    @property
+    def rpc_type(self) -> str:
+        """Return the RPC type in gRPC vocabulary.
+
+        Returns:
+            str: The RPC type.
+        """
+        return '_'.join((
+            'stream' if self.client_streaming else 'unary',
+            'stream' if self.server_streaming else 'unary',
+        ))
+
 
 @dataclasses.dataclass(frozen=True)
 class Service:

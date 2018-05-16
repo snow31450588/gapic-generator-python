@@ -88,6 +88,8 @@ class Generator:
         output_files += self._read_flat_files(os.path.join(_dirname, 'files'))
 
         # Return the CodeGeneratorResponse output.
+        import sys
+        print([f.name for f in output_files], file=sys.stderr)
         return CodeGeneratorResponse(file=output_files)
 
     def _render_templates(
